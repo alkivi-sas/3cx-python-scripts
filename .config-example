@@ -1,0 +1,4 @@
+[3cx]
+user = freshdesk_to_3cx
+password = awesomepassword
+database = database_single
