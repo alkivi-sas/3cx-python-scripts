@@ -2,6 +2,7 @@ import os
 import logging
 import click
 import configparser
+import xml.etree.ElementTree as ET 
 
 
 from models import Extdevice, IPBXBinder
@@ -45,7 +46,32 @@ def check_phones_codec(debug):
     # Query
     session = ipbx_client.get_session()
     ipbx_extdevices = session.query(Extdevice).all()
-    logger.debug('test', ipbx_extdevices)
+
+    logger.new_loop_logger()
+    for device in ipbx_extdevices:
+        prefix = 'Extension {0}'.format(device.fkidextension)
+        logger.new_iteration(prefix=prefix)
+        phone_type = device.filename2
+        logger.debug('Phone is {0}'.format(phone_type))
+        data = device.pv_settings
+        tree = ET.fromstring(data)
+        codecs = {}
+        for codec in tree.iter('Codec'):
+            name = codec.attrib['DisplayText']
+            priority = codec.attrib['Priority']
+            codecs[priority] = name
+        test_codecs = []
+        for key in sorted(codecs.keys()):
+                test_codecs.append(codecs[key])
+        wanted_codecs = ['PCMA', 'G729', 'PCMU', 'G722']
+        index = 0
+        for codec in wanted_codecs:
+            if codec != test_codecs[index]:
+                logger.warning('error in codec order', test_codecs)
+                break
+            index += 1
+    logger.del_loop_logger()
+
 
 
 if __name__ == "__main__":
