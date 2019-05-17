@@ -9,6 +9,8 @@ Base = automap_base()
 
 logger = logging.getLogger(__name__)
 
+class Users(Base):
+    __tablename__ = 'users'
 
 class Extdevice(Base):
     __tablename__ = 'extdevice'

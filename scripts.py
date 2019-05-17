@@ -5,11 +5,11 @@ import configparser
 import xml.etree.ElementTree as ET 
 
 
-from models import Extdevice, IPBXBinder
+from models import Extdevice, IPBXBinder, Users
 from alkivi.logger import Logger
 
 # Define the global logger
-logger = Logger(min_log_level_to_mail=None,
+logger = Logger(min_log_level_to_mail=logging.WARNING,
                 min_log_level_to_save=logging.DEBUG,
                 min_log_level_to_print=logging.DEBUG,
                 emails=['monitoring@alkivi.fr'])
@@ -51,8 +51,12 @@ def check_phones_codec(debug):
     for device in ipbx_extdevices:
         prefix = 'Extension {0}'.format(device.fkidextension)
         logger.new_iteration(prefix=prefix)
+        logger.debug('Getting user')
+        user = session.query(Users).filter(Users.fkidextension == device.fkidextension).first()
+        prefix = '{0} {1}'.format(user.firstname, user.lastname)
+        logger.set_prefix(prefix)
         phone_type = device.filename2
-        logger.debug('Phone is {0}'.format(phone_type))
+        logger.info('Phone is {0}'.format(phone_type))
         data = device.pv_settings
         tree = ET.fromstring(data)
         codecs = {}
