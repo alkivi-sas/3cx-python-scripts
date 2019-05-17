@@ -73,7 +73,7 @@ def check_phones_codec(debug):
         elif phone_type.startswith('Snom'):
             wanted_codecs = ['G711a', 'G729', 'G711u', 'G722']
         elif phone_type.startswith('Polycom'):
-            wanted_codecs = ['PCMA', 'G722A/B', 'PCMU', 'G722']
+            wanted_codecs = ['PCMA', 'G729A/B', 'PCMU', 'G722']
 
         if not wanted_codecs:
             logger.warning('Weird phone', test_codecs)
