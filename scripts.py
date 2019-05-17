@@ -84,7 +84,11 @@ def check_phones_codec(debug):
             if len(wanted_codecs) < index:
                 break
             if codec != wanted_codecs[index]:
-                logger.warning('error in codec order', test_codecs)
+                should_be = ' '.join(wanted_codecs)
+                actually_is = ' '.join(test_codecs)
+                logger.warning('error in codec order ' +
+                        'should be {0} '.format(should_be) +
+                        'but actually is {0}'.format(actually_is))
                 break
             index += 1
     logger.del_loop_logger()
