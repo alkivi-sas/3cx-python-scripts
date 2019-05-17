@@ -67,10 +67,23 @@ def check_phones_codec(debug):
         test_codecs = []
         for key in sorted(codecs.keys()):
                 test_codecs.append(codecs[key])
-        wanted_codecs = ['PCMA', 'G729', 'PCMU', 'G722']
+        wanted_codecs = None
+        if phone_type.startswith('Yealink'):
+            wanted_codecs = ['PCMA', 'G729', 'PCMU', 'G722']
+        elif phone_type.startswith('Snom'):
+            wanted_codecs = ['G711a', 'G729', 'G711u', 'G722']
+        elif phone_type.startswith('Polycom'):
+            wanted_codecs = ['PCMA', 'G722A/B', 'PCMU', 'G722']
+
+        if not wanted_codecs:
+            logger.warning('Weird phone', test_codecs)
+            continue
+
         index = 0
-        for codec in wanted_codecs:
-            if codec != test_codecs[index]:
+        for codec in test_codecs:
+            if len(wanted_codecs) < index:
+                break
+            if codec != wanted_codecs[index]:
                 logger.warning('error in codec order', test_codecs)
                 break
             index += 1

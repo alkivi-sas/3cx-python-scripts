@@ -12,16 +12,9 @@ logger = logging.getLogger(__name__)
 class Users(Base):
     __tablename__ = 'users'
 
+
 class Extdevice(Base):
     __tablename__ = 'extdevice'
-
-    id = Column('idextdevice', Integer, primary_key=True)
-    macaddress = Column(String(12))
-    templateused = Column(String(255))
-    filename1 = Column(String(255))
-    filename2 = Column(String(255))
-    interface = Column(String)
-    pv_settings = Column(String)
 
 
 class IPBXBinder(object):
