@@ -74,7 +74,9 @@ def check_3cx_data(debug):
 
     # Parameter check
     parameters_to_check = {
-            'E164': 0
+            'E164': '0',
+            'MS_LOCAL_CODEC_LIST': 'PCMU G729 PCMA G722 GSM OPUS',
+            'MS_EXTERNAL_CODEC_LIST': 'GSM PCMU G729 PCMA G722 OPUS',
     }
     logger.new_loop_logger()
     for name, value in parameters_to_check.items():
