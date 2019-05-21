@@ -17,6 +17,22 @@ class Extdevice(Base):
     __tablename__ = 'extdevice'
 
 
+class Codec(Base):
+    __tablename__ = 'codec'
+
+
+class Codec2Gateway(Base):
+    __tablename__ = 'codec2gateway'
+
+
+class Gateway(Base):
+    __tablename__ = 'gateway'
+
+
+class Parameter(Base):
+    __tablename__ = 'parameter'
+
+
 class IPBXBinder(object):
 
     def __init__(self, db, dbuser, dbpass, host='localhost', port=5432):

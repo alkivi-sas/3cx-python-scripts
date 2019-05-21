@@ -5,7 +5,7 @@ import configparser
 import xml.etree.ElementTree as ET 
 
 
-from models import Extdevice, IPBXBinder, Users
+from models import Extdevice, IPBXBinder, Users, Parameter, Codec, Codec2Gateway, Gateway
 from alkivi.logger import Logger
 
 # Define the global logger
@@ -21,8 +21,14 @@ ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 @click.command()
 @click.option('--debug', default=False, is_flag=True,
               help='Toggle Debug mode')
-def check_phones_codec(debug):
-    """Check order of phones codec."""
+def check_3cx_data(debug):
+    """
+    Check various settings in 3CX.
+
+    Codec order in phones
+    Codec order in gateway (trunk)
+    Parameter
+    """
     if debug:
         logger.set_min_level_to_print(logging.DEBUG)
         logger.set_min_level_to_save(logging.DEBUG)
@@ -43,10 +49,44 @@ def check_phones_codec(debug):
     # Load object
     ipbx_client = IPBXBinder(db, dbuser, dbpass)
 
-    # Query
+    # Session for query
     session = ipbx_client.get_session()
-    ipbx_extdevices = session.query(Extdevice).all()
 
+    # Trunk check
+    gateways = session.query(Gateway).all()
+    wanted_codecs = ['PCMA', 'G729', 'PCMU']
+    logger.new_loop_logger()
+    for gateway in gateways:
+        logger.new_iteration(prefix=gateway.name)
+        logger.debug('Checking codec on gateway {0}'.format(gateway.host))
+        codecs = session.query(Codec2Gateway).filter(Codec2Gateway.fkidgateway==gateway.idgateway).order_by(Codec2Gateway.priority).all()
+        index = 0
+        logger.new_loop_logger()
+        for codec in codecs:
+            logger.new_iteration(prefix='Priority {0}'.format(codec.priority))
+            real_codec = session.query(Codec).filter(Codec.idcodec==codec.fkidcodec).first()
+            logger.debug('Codec is {0}'.format(real_codec.codecrfcname))
+            if wanted_codecs[index] != real_codec.codecrfcname:
+                logger.warning('Error expected {0}, got {1}'.format(wanted_codecs[index], real_codec.codecrfcname))
+                break
+            index += 1
+    logger.del_loop_logger()
+
+    # Parameter check
+    parameters_to_check = {
+            'E164': 0
+    }
+    logger.new_loop_logger()
+    for name, value in parameters_to_check.items():
+        logger.new_iteration(prefix=name)
+        logger.debug('Checking parameter')
+        parameter = session.query(Parameter).filter(Parameter.name==name).first()
+        if parameter.value != value:
+            logger.warning('Expected {0} but is {1}'.format(value, parameter.value))
+    logger.del_loop_logger()
+
+    # Phones check
+    ipbx_extdevices = session.query(Extdevice).all()
     logger.new_loop_logger()
     for device in ipbx_extdevices:
         prefix = 'Extension {0}'.format(device.fkidextension)
@@ -97,6 +137,6 @@ def check_phones_codec(debug):
 
 if __name__ == "__main__":
     try:
-        check_phones_codec()
+        check_3cx_data()
     except Exception as exception:
         logger.exception(exception)
