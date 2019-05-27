@@ -1,8 +1,11 @@
+#!/usr/bin/env python
+# coding: utf8
+
 import os
 import logging
 import click
 import configparser
-import xml.etree.ElementTree as ET 
+import xml.etree.ElementTree as ET
 
 
 from models import Extdevice, IPBXBinder, Users, Parameter, Codec, Codec2Gateway, Gateway
@@ -32,6 +35,7 @@ def check_3cx_data(debug):
     if debug:
         logger.set_min_level_to_print(logging.DEBUG)
         logger.set_min_level_to_save(logging.DEBUG)
+        logger.set_min_level_to_mail(None)
 
     config_file = os.path.join(ROOT_DIR, '.config')
     logger.info(config_file)
@@ -59,12 +63,12 @@ def check_3cx_data(debug):
     for gateway in gateways:
         logger.new_iteration(prefix=gateway.name)
         logger.debug('Checking codec on gateway {0}'.format(gateway.host))
-        codecs = session.query(Codec2Gateway).filter(Codec2Gateway.fkidgateway==gateway.idgateway).order_by(Codec2Gateway.priority).all()
+        codecs = session.query(Codec2Gateway).filter(Codec2Gateway.fkidgateway == gateway.idgateway).order_by(Codec2Gateway.priority).all()
         index = 0
         logger.new_loop_logger()
         for codec in codecs:
             logger.new_iteration(prefix='Priority {0}'.format(codec.priority))
-            real_codec = session.query(Codec).filter(Codec.idcodec==codec.fkidcodec).first()
+            real_codec = session.query(Codec).filter(Codec.idcodec == codec.fkidcodec).first()
             logger.debug('Codec is {0}'.format(real_codec.codecrfcname))
             if wanted_codecs[index] != real_codec.codecrfcname:
                 logger.warning('Error expected {0}, got {1}'.format(wanted_codecs[index], real_codec.codecrfcname))
@@ -76,13 +80,13 @@ def check_3cx_data(debug):
     parameters_to_check = {
             'E164': '0',
             'MS_LOCAL_CODEC_LIST': 'PCMU G729 PCMA G722 GSM OPUS',
-            'MS_EXTERNAL_CODEC_LIST': 'GSM PCMU G729 PCMA G722 OPUS',
+            'MS_EXTERNAL_CODEC_LIST': 'PCMU G729 PCMA G722 GSM OPUS',
     }
     logger.new_loop_logger()
     for name, value in parameters_to_check.items():
         logger.new_iteration(prefix=name)
         logger.debug('Checking parameter')
-        parameter = session.query(Parameter).filter(Parameter.name==name).first()
+        parameter = session.query(Parameter).filter(Parameter.name == name).first()
         if parameter.value != value:
             logger.warning('Expected {0} but is {1}'.format(value, parameter.value))
     logger.del_loop_logger()
@@ -108,14 +112,22 @@ def check_3cx_data(debug):
             codecs[priority] = name
         test_codecs = []
         for key in sorted(codecs.keys()):
-                test_codecs.append(codecs[key])
+            test_codecs.append(codecs[key])
         wanted_codecs = None
         if phone_type.startswith('Yealink'):
-            wanted_codecs = ['PCMA', 'G729', 'PCMU', 'G722']
+            wanted_codecs = ['PCMA', 'G729', 'PCMU']
         elif phone_type.startswith('Snom'):
-            wanted_codecs = ['G711a', 'G729', 'G711u', 'G722']
+            wanted_codecs = ['G711a', 'G729', 'G711u']
         elif phone_type.startswith('Polycom'):
-            wanted_codecs = ['PCMA', 'G729A/B', 'PCMU', 'G722']
+            wanted_codecs = ['PCMA', 'G729A/B', 'PCMU']
+
+        if len(wanted_codecs) != len(test_codecs):
+            should_be = ' '.join(wanted_codecs)
+            actually_is = ' '.join(test_codecs)
+            logger.warning('error in codec length ' +
+                           'should be {0} '.format(should_be) +
+                           'but actually is {0}'.format(actually_is))
+            continue
 
         if not wanted_codecs:
             logger.warning('Weird phone', test_codecs)
@@ -129,12 +141,11 @@ def check_3cx_data(debug):
                 should_be = ' '.join(wanted_codecs)
                 actually_is = ' '.join(test_codecs)
                 logger.warning('error in codec order ' +
-                        'should be {0} '.format(should_be) +
-                        'but actually is {0}'.format(actually_is))
+                               'should be {0} '.format(should_be) +
+                               'but actually is {0}'.format(actually_is))
                 break
             index += 1
     logger.del_loop_logger()
-
 
 
 if __name__ == "__main__":

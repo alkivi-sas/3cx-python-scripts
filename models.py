@@ -2,12 +2,13 @@ import logging
 
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine, Column, String, Integer
+from sqlalchemy import create_engine
 
 # Setup SQLAlchemy
 Base = automap_base()
 
 logger = logging.getLogger(__name__)
+
 
 class Users(Base):
     __tablename__ = 'users'
