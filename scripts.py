@@ -8,7 +8,7 @@ import configparser
 import xml.etree.ElementTree as ET
 
 
-from models import Extdevice, IPBXBinder, Users, Parameter, Codec, Codec2Gateway, Gateway
+from models import Extdevice, IPBXBinder, Users, Parameter, Codec, Codec2Gateway, Gateway, DnProp
 from alkivi.logger import Logger
 
 # Define the global logger
@@ -56,6 +56,43 @@ def check_3cx_data(debug):
     # Session for query
     session = ipbx_client.get_session()
 
+    # DnProp (Soft phones)
+    dnprops = session.query(DnProp).filter(DnProp.name == 'MYPHONETEMPLATEINFO').all()
+    wanted_codecs = ['PCMA', 'G729', 'PCMU']
+    logger.new_loop_logger()
+    for dnprop in dnprops:
+        user = session.query(Users).filter(Users.fkidextension == dnprop.fkiddn).first()
+        logger.new_iteration(prefix=dnprop.iddnprop)
+        prefix = 'Softphone {0} {1}'.format(user.firstname, user.lastname)
+        logger.set_prefix(prefix)
+        data = dnprop.value
+        tree = ET.fromstring(data)
+        test_codecs = []
+        for codec in tree.iter('Codec'):
+            test_codecs.append(codec.text)
+
+        if len(wanted_codecs) != len(test_codecs):
+            should_be = ' '.join(wanted_codecs)
+            actually_is = ' '.join(test_codecs)
+            logger.warning('error in codec length ' +
+                           'should be {0} '.format(should_be) +
+                           'but actually is {0}'.format(actually_is))
+            continue
+
+        index = 0
+        for codec in test_codecs:
+            if len(wanted_codecs) < index:
+                break
+            if codec != wanted_codecs[index]:
+                should_be = ' '.join(wanted_codecs)
+                actually_is = ' '.join(test_codecs)
+                logger.warning('error in codec order ' +
+                               'should be {0} '.format(should_be) +
+                               'but actually is {0}'.format(actually_is))
+                break
+            index += 1
+    logger.del_loop_logger()
+
     # Trunk check
     gateways = session.query(Gateway).all()
     wanted_codecs = ['PCMA', 'G729', 'PCMU']
@@ -70,6 +107,8 @@ def check_3cx_data(debug):
             logger.new_iteration(prefix='Priority {0}'.format(codec.priority))
             real_codec = session.query(Codec).filter(Codec.idcodec == codec.fkidcodec).first()
             logger.debug('Codec is {0}'.format(real_codec.codecrfcname))
+            if len(wanted_codecs) <= index:
+                break
             if wanted_codecs[index] != real_codec.codecrfcname:
                 logger.warning('Error expected {0}, got {1}'.format(wanted_codecs[index], real_codec.codecrfcname))
                 break

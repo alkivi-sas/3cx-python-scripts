@@ -34,6 +34,10 @@ class Parameter(Base):
     __tablename__ = 'parameter'
 
 
+class DnProp(Base):
+    __tablename__ = 'dnprop'
+
+
 class IPBXBinder(object):
 
     def __init__(self, db, dbuser, dbpass, host='localhost', port=5432):
