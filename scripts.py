@@ -113,6 +113,7 @@ def check_3cx_data(debug):
                 logger.warning('Error expected {0}, got {1}'.format(wanted_codecs[index], real_codec.codecrfcname))
                 break
             index += 1
+        logger.del_loop_logger()
     logger.del_loop_logger()
 
     # Parameter check
