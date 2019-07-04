@@ -3,6 +3,7 @@
 
 import os
 import logging
+import socket
 import click
 import configparser
 import xml.etree.ElementTree as ET
@@ -56,6 +57,9 @@ def check_3cx_data(debug):
     # Session for query
     session = ipbx_client.get_session()
 
+    # Errors aggregation
+    errors = []
+
     # DnProp (Soft phones)
     dnprops = session.query(DnProp).filter(DnProp.name == 'MYPHONETEMPLATEINFO').all()
     wanted_codecs = ['PCMA', 'G729', 'PCMU']
@@ -74,9 +78,11 @@ def check_3cx_data(debug):
         if len(wanted_codecs) != len(test_codecs):
             should_be = ' '.join(wanted_codecs)
             actually_is = ' '.join(test_codecs)
-            logger.warning('error in codec length ' +
-                           'should be {0} '.format(should_be) +
-                           'but actually is {0}'.format(actually_is))
+            error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
+                    'error in codec length ' +\
+                    'should be {0} '.format(should_be) +\
+                    'but actually is {0}'.format(actually_is)
+            errors.append(error)
             continue
 
         index = 0
@@ -86,9 +92,11 @@ def check_3cx_data(debug):
             if codec != wanted_codecs[index]:
                 should_be = ' '.join(wanted_codecs)
                 actually_is = ' '.join(test_codecs)
-                logger.warning('error in codec order ' +
-                               'should be {0} '.format(should_be) +
-                               'but actually is {0}'.format(actually_is))
+                error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
+                        'error in codec order ' +\
+                        'should be {0} '.format(should_be) +\
+                        'but actually is {0}'.format(actually_is)
+                errors.append(error)
                 break
             index += 1
     logger.del_loop_logger()
@@ -110,7 +118,9 @@ def check_3cx_data(debug):
             if len(wanted_codecs) <= index:
                 break
             if wanted_codecs[index] != real_codec.codecrfcname:
-                logger.warning('Error expected {0}, got {1}'.format(wanted_codecs[index], real_codec.codecrfcname))
+                error = 'Codec on gateway {0} {1} '.format(gateway.name, gateway.host) +\
+                        'Error expected {0}, got {1}'.format(wanted_codecs[index], real_codec.codecrfcname)
+                errors.append(error)
                 break
             index += 1
         logger.del_loop_logger()
@@ -128,7 +138,9 @@ def check_3cx_data(debug):
         logger.debug('Checking parameter')
         parameter = session.query(Parameter).filter(Parameter.name == name).first()
         if parameter.value != value:
-            logger.warning('Expected {0} but is {1}'.format(value, parameter.value))
+            error = 'Parameter {0} '.format(name) +\
+                    'Expected {0} but is {1}'.format(value, parameter.value)
+            errors.append(error)
     logger.del_loop_logger()
 
     # Phones check
@@ -164,13 +176,19 @@ def check_3cx_data(debug):
         if len(wanted_codecs) != len(test_codecs):
             should_be = ' '.join(wanted_codecs)
             actually_is = ' '.join(test_codecs)
-            logger.warning('error in codec length ' +
-                           'should be {0} '.format(should_be) +
-                           'but actually is {0}'.format(actually_is))
+            error = 'User {0} {1} '.format(user.firstname, user.lastname) +\
+                    'Phone is {0} '.format(phone_type) +\
+                    'error in codec length ' +\
+                    'should be {0} '.format(should_be) +\
+                    'but actually is {0}'.format(actually_is)
+            errors.append(error)
             continue
 
         if not wanted_codecs:
-            logger.warning('Weird phone', test_codecs)
+            error = 'User {0} {1} '.format(user.firstname, user.lastname) +\
+                    'Phone is {0} '.format(phone_type) +\
+                    'weird phone {0}'.format(test_codecs)
+            errors.append(error)
             continue
 
         index = 0
@@ -180,11 +198,23 @@ def check_3cx_data(debug):
             if codec != wanted_codecs[index]:
                 should_be = ' '.join(wanted_codecs)
                 actually_is = ' '.join(test_codecs)
-                logger.warning('error in codec order ' +
-                               'should be {0} '.format(should_be) +
-                               'but actually is {0}'.format(actually_is))
+                error = 'User {0} {1} '.format(user.firstname, user.lastname) +\
+                        'Phone is {0} '.format(phone_type) +\
+                        'error in codec order ' +\
+                        'should be {0} '.format(should_be) +\
+                        'but actually is {0}'.format(actually_is)
+                errors.append(error)
                 break
             index += 1
+    logger.del_loop_logger()
+
+    logger.new_loop_logger()
+    if len(errors):
+        logger.new_iteration(prefix='We have errors')
+        host = socket.gethostname()
+        logger.warning('3CX errors for {0}'.format(host))
+        for error in errors:
+            logger.warning(error)
     logger.del_loop_logger()
 
 
