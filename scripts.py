@@ -65,8 +65,10 @@ def check_3cx_data(debug):
     wanted_codecs = ['PCMA', 'G729', 'PCMU']
     logger.new_loop_logger()
     for dnprop in dnprops:
-        user = session.query(Users).filter(Users.fkidextension == dnprop.fkiddn).first()
         logger.new_iteration(prefix=dnprop.iddnprop)
+        user = session.query(Users).filter(Users.fkidextension == dnprop.fkiddn).first()
+        if not user:
+            continue
         prefix = 'Softphone {0} {1}'.format(user.firstname, user.lastname)
         logger.set_prefix(prefix)
         data = dnprop.value
