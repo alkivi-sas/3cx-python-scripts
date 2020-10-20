@@ -47,3 +47,4 @@ htmlcov
 *.log.2017*
 *.log.2018*
 *.log.2019*
+.venv
