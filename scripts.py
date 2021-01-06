@@ -147,17 +147,21 @@ def check_3cx_data(debug):
 
     # Automatic update check
     parameter = session.query(Parameter).filter(Parameter.name == 'UPDATE_SCHEDULE_OPTIONS').first()
-    tree = ET.fromstring(parameter.value)
-    data = tree.find('UpdatesPbx')
-    update_enabled = data.get('ScheduleEnabled')
-    if update_enabled == 'false':
+    if parameter is None:
         error = 'Automatic updates are disabled, please check Wiki 3CXHelpers and fix.'
         errors.append(error)
-    elif update_enabled == 'true':
-        logger.debug('Automatic update are enabled')
     else:
-        logger.warning('fnezjknfzekjgnejkzgnezkg')
-        exit(0)
+        tree = ET.fromstring(parameter.value)
+        data = tree.find('UpdatesPbx')
+        update_enabled = data.get('ScheduleEnabled')
+        if update_enabled == 'false':
+            error = 'Automatic updates are disabled, please check Wiki 3CXHelpers and fix.'
+            errors.append(error)
+        elif update_enabled == 'true':
+            logger.debug('Automatic update are enabled')
+        else:
+            logger.warning('fnezjknfzekjgnejkzgnezkg')
+            exit(0)
 
     # Phones check
     ipbx_extdevices = session.query(Extdevice).all()
