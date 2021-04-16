@@ -69,6 +69,8 @@ def check_3cx_data(debug):
         user = session.query(Users).filter(Users.fkidextension == dnprop.fkiddn).first()
         if not user:
             continue
+        if user.firstname and user.firstname.startswith('HD0'):
+            continue
         prefix = 'Softphone {0} {1}'.format(user.firstname, user.lastname)
         logger.set_prefix(prefix)
         data = dnprop.value
