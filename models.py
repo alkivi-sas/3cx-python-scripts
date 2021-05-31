@@ -38,6 +38,10 @@ class DnProp(Base):
     __tablename__ = 'dnprop'
 
 
+class Queue(Base):
+    __tablename__ = 'queue'
+
+
 class IPBXBinder(object):
 
     def __init__(self, db, dbuser, dbpass, host='localhost', port=5432):

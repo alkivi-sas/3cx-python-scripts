@@ -9,7 +9,7 @@ import configparser
 import xml.etree.ElementTree as ET
 
 
-from models import Extdevice, IPBXBinder, Users, Parameter, Codec, Codec2Gateway, Gateway, DnProp
+from models import Extdevice, IPBXBinder, Users, Parameter, Codec, Codec2Gateway, Gateway, DnProp, Queue
 from alkivi.logger import Logger
 
 # Define the global logger
@@ -59,6 +59,20 @@ def check_3cx_data(debug):
 
     # Errors aggregation
     errors = []
+
+    # Queue
+    dnprops = session.query(DnProp).filter(DnProp.name == 'PROMPTSETNAME').all()
+    logger.new_loop_logger()
+    for dnprop in dnprops:
+        logger.new_iteration(prefix=dnprop.iddnprop)
+        queue = session.query(Queue).filter(Queue.fkiddn == dnprop.fkiddn).first()
+        if not queue:
+            continue
+        logger.debug('Queue {0} has language {1}'.format(queue.name, dnprop.value))
+        if dnprop.value != 'French Prompts Set':
+            error = 'Queue {0} has a wrong language'.format(queue.name)
+            errors.append(error)
+    logger.del_loop_logger()
 
     # DnProp (Soft phones)
     dnprops = session.query(DnProp).filter(DnProp.name == 'MYPHONETEMPLATEINFO').all()
