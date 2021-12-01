@@ -145,11 +145,22 @@ def check_3cx_data(debug):
     logger.del_loop_logger()
 
     # Parameter check
+    parameter = session.query(Parameter).filter(Parameter.name == 'VERSION').first()
+    version = parameter.value
+    major_version = int(version.split('.')[0])
+
+    ms_local_codec_list = 'PCMA G729 PCMU G722 OPUS'
+    ms_external_codec_list = 'PCMA G729 PCMU G722 OPUS'
+    if major_version < 18:
+        ms_local_codec_list = 'PCMA G729 PCMU G722 GSM OPUS'
+        ms_external_codec_list = 'PCMA G729 PCMU G722 GSM OPUS'
+
     parameters_to_check = {
             'E164': '0',
-            'MS_LOCAL_CODEC_LIST': 'PCMA G729 PCMU G722 GSM OPUS',
-            'MS_EXTERNAL_CODEC_LIST': 'PCMA G729 PCMU G722 GSM OPUS',
+            'MS_EXTERNAL_CODEC_LIST': ms_external_codec_list,
+            'MS_LOCAL_CODEC_LIST': ms_local_codec_list,
     }
+
     logger.new_loop_logger()
     for name, value in parameters_to_check.items():
         logger.new_iteration(prefix=name)
