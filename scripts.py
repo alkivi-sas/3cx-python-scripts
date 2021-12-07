@@ -215,10 +215,13 @@ def check_3cx_data(debug):
         wanted_codecs = None
         if phone_type.startswith('Yealink'):
             wanted_codecs = ['PCMA', 'G729', 'PCMU']
-        elif phone_type.startswith('Snom'):
+        elif phone_type.startswith('Snom') or phone_type.startswith('Cisco'):
             wanted_codecs = ['G711a', 'G729', 'G711u']
         elif phone_type.startswith('Polycom'):
             wanted_codecs = ['PCMA', 'G729A/B', 'PCMU']
+        else:
+            logger.warning('Unknow phone_type {0} here is current codecs {1}'.format(phone_type, test_codecs))
+            continue
 
         if len(wanted_codecs) != len(test_codecs):
             should_be = ' '.join(wanted_codecs)
