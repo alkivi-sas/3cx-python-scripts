@@ -75,57 +75,61 @@ def check_3cx_data(debug):
     logger.del_loop_logger()
 
     # DnProp (Soft phones)
-    dnprops = session.query(DnProp).filter(DnProp.name == 'MYPHONETEMPLATEINFO').all()
-    wanted_codecs = ['PCMA', 'G729', 'PCMU']
-    logger.new_loop_logger()
-    for dnprop in dnprops:
-        logger.new_iteration(prefix=dnprop.iddnprop)
-        user = session.query(Users).filter(Users.fkidextension == dnprop.fkiddn).first()
-        if not user:
-            continue
-        if user.firstname and user.firstname.startswith('HD0'):
-            continue
-        prefix = 'Softphone {0} {1}'.format(user.firstname, user.lastname)
-        logger.set_prefix(prefix)
-        data = dnprop.value
-        tree = ET.fromstring(data)
-        test_codecs = []
-        for codec in tree.iter('Codec'):
-            test_codecs.append(codec.text)
+    #dnprops = session.query(DnProp).filter(DnProp.name == 'MYPHONETEMPLATEINFO').all()
+    #wanted_codecs = ['PCMA', 'G729', 'PCMU']
+    #logger.new_loop_logger()
+    #for dnprop in dnprops:
+    #    logger.new_iteration(prefix=dnprop.iddnprop)
+    #    user = session.query(Users).filter(Users.fkidextension == dnprop.fkiddn).first()
+    #    if not user:
+    #        continue
+    #    if user.firstname and user.firstname.startswith('HD0'):
+    #        continue
+    #    prefix = 'Softphone {0} {1}'.format(user.firstname, user.lastname)
+    #    logger.set_prefix(prefix)
+    #    data = dnprop.value
+    #    tree = ET.fromstring(data)
+    #    test_codecs = []
+    #    for codec in tree.iter('Codec'):
+    #        test_codecs.append(codec.text)
 
-        if len(wanted_codecs) != len(test_codecs):
-            should_be = ' '.join(wanted_codecs)
-            actually_is = ' '.join(test_codecs)
-            error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
-                    'error in codec length ' +\
-                    'should be {0} '.format(should_be) +\
-                    'but actually is {0}'.format(actually_is)
-            errors.append(error)
-            continue
+    #    if len(wanted_codecs) != len(test_codecs):
+    #        should_be = ' '.join(wanted_codecs)
+    #        actually_is = ' '.join(test_codecs)
+    #        error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
+    #                'error in codec length ' +\
+    #                'should be {0} '.format(should_be) +\
+    #                'but actually is {0}'.format(actually_is)
+    #        errors.append(error)
+    #        continue
 
-        index = 0
-        for codec in test_codecs:
-            if len(wanted_codecs) < index:
-                break
-            if codec != wanted_codecs[index]:
-                should_be = ' '.join(wanted_codecs)
-                actually_is = ' '.join(test_codecs)
-                error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
-                        'error in codec order ' +\
-                        'should be {0} '.format(should_be) +\
-                        'but actually is {0}'.format(actually_is)
-                errors.append(error)
-                break
-            index += 1
-    logger.del_loop_logger()
+    #    index = 0
+    #    for codec in test_codecs:
+    #        if len(wanted_codecs) < index:
+    #            break
+    #        if codec != wanted_codecs[index]:
+    #            should_be = ' '.join(wanted_codecs)
+    #            actually_is = ' '.join(test_codecs)
+    #            error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
+    #                    'error in codec order ' +\
+    #                    'should be {0} '.format(should_be) +\
+    #                    'but actually is {0}'.format(actually_is)
+    #            errors.append(error)
+    #            break
+    #        index += 1
+    #logger.del_loop_logger()
 
     # Trunk check
     gateways = session.query(Gateway).all()
-    wanted_codecs = ['PCMA', 'G729', 'PCMU']
     logger.new_loop_logger()
     for gateway in gateways:
         logger.new_iteration(prefix=gateway.name)
         logger.debug('Checking codec on gateway {0}'.format(gateway.host))
+        wanted_codecs = ['PCMA', 'G729', 'PCMU']
+        if 'pronto' in gateway.name.lower():
+            wanted_codecs = ['PCMA', 'PCMU']
+        elif 'carrier' in gateway.name.lower():
+            wanted_codecs = ['PCMA', 'PCMU']
         codecs = session.query(Codec2Gateway).filter(Codec2Gateway.fkidgateway == gateway.idgateway).order_by(Codec2Gateway.priority).all()
         index = 0
         logger.new_loop_logger()
