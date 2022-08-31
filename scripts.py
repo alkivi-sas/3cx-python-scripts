@@ -11,6 +11,8 @@ import xml.etree.ElementTree as ET
 
 from models import Extdevice, IPBXBinder, Users, Parameter, Codec, Codec2Gateway, Gateway, DnProp, Queue
 from alkivi.logger import Logger
+from freshdesk.api import API as FreshdeskAPI
+from alkivi.config import ConfigManager
 
 # Define the global logger
 logger = Logger(min_log_level_to_mail=logging.WARNING,
@@ -68,56 +70,58 @@ def check_3cx_data(debug):
         queue = session.query(Queue).filter(Queue.fkiddn == dnprop.fkiddn).first()
         if not queue:
             continue
-        logger.debug('Queue {0} has language {1}'.format(queue.name, dnprop.value))
-        if dnprop.value != 'French Prompts Set':
-            error = 'Queue {0} has a wrong language'.format(queue.name)
-            errors.append(error)
+        language = dnprop.value
+        logger.debug('Queue {0} has language {1}'.format(queue.name, language))
+        if language.endswith('Prompts Set'):
+            if language != 'French Prompts Set':
+                error = 'Queue {0} has a wrong language {1}'.format(queue.name, language)
+                errors.append(error)
     logger.del_loop_logger()
 
     # DnProp (Soft phones)
-    #dnprops = session.query(DnProp).filter(DnProp.name == 'MYPHONETEMPLATEINFO').all()
-    #wanted_codecs = ['PCMA', 'G729', 'PCMU']
-    #logger.new_loop_logger()
-    #for dnprop in dnprops:
-    #    logger.new_iteration(prefix=dnprop.iddnprop)
-    #    user = session.query(Users).filter(Users.fkidextension == dnprop.fkiddn).first()
-    #    if not user:
-    #        continue
-    #    if user.firstname and user.firstname.startswith('HD0'):
-    #        continue
-    #    prefix = 'Softphone {0} {1}'.format(user.firstname, user.lastname)
-    #    logger.set_prefix(prefix)
-    #    data = dnprop.value
-    #    tree = ET.fromstring(data)
-    #    test_codecs = []
-    #    for codec in tree.iter('Codec'):
-    #        test_codecs.append(codec.text)
+    # dnprops = session.query(DnProp).filter(DnProp.name == 'MYPHONETEMPLATEINFO').all()
+    # wanted_codecs = ['PCMA', 'G729', 'PCMU']
+    # logger.new_loop_logger()
+    # for dnprop in dnprops:
+    #     logger.new_iteration(prefix=dnprop.iddnprop)
+    #     user = session.query(Users).filter(Users.fkidextension == dnprop.fkiddn).first()
+    #     if not user:
+    #         continue
+    #     if user.firstname and user.firstname.startswith('HD0'):
+    #         continue
+    #     prefix = 'Softphone {0} {1}'.format(user.firstname, user.lastname)
+    #     logger.set_prefix(prefix)
+    #     data = dnprop.value
+    #     tree = ET.fromstring(data)
+    #     test_codecs = []
+    #     for codec in tree.iter('Codec'):
+    #         test_codecs.append(codec.text)
 
-    #    if len(wanted_codecs) != len(test_codecs):
-    #        should_be = ' '.join(wanted_codecs)
-    #        actually_is = ' '.join(test_codecs)
-    #        error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
-    #                'error in codec length ' +\
-    #                'should be {0} '.format(should_be) +\
-    #                'but actually is {0}'.format(actually_is)
-    #        errors.append(error)
-    #        continue
+    #     if len(wanted_codecs) != len(test_codecs):
+    #         should_be = ' '.join(wanted_codecs)
+    #         actually_is = ' '.join(test_codecs)
+    #         error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
+    #                 'error in codec length ' +\
+    #                 'should be {0} '.format(should_be) +\
+    #                 'but actually is {0}'.format(actually_is)
+    #         errors.append(error)
+    #         continue
 
-    #    index = 0
-    #    for codec in test_codecs:
-    #        if len(wanted_codecs) < index:
-    #            break
-    #        if codec != wanted_codecs[index]:
-    #            should_be = ' '.join(wanted_codecs)
-    #            actually_is = ' '.join(test_codecs)
-    #            error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
-    #                    'error in codec order ' +\
-    #                    'should be {0} '.format(should_be) +\
-    #                    'but actually is {0}'.format(actually_is)
-    #            errors.append(error)
-    #            break
-    #        index += 1
-    #logger.del_loop_logger()
+    #     index = 0
+    #     for codec in test_codecs:
+    #         if len(wanted_codecs) < index:
+    #             break
+    #         if codec != wanted_codecs[index]:
+    #             should_be = ' '.join(wanted_codecs)
+    #             actually_is = ' '.join(test_codecs)
+    #             error = 'Softphone {0} {1} : '.format(user.firstname, user.lastname) +\
+    #                     'error in codec order ' +\
+    #                     'should be {0} '.format(should_be) +\
+    #                     'but actually is {0}'.format(actually_is)
+    #             errors.append(error)
+    #             break
+    #         index += 1
+    # logger.del_loop_logger()
 
     # Trunk check
     gateways = session.query(Gateway).all()
@@ -130,7 +134,7 @@ def check_3cx_data(debug):
             wanted_codecs = ['PCMA', 'PCMU']
         elif 'carrier' in gateway.name.lower():
             wanted_codecs = ['PCMA', 'PCMU']
-        codecs = session.query(Codec2Gateway).filter(Codec2Gateway.fkidgateway == gateway.idgateway).order_by(Codec2Gateway.priority).all()
+        codecs = session.query(Codec2Gateway).filter(Codec2Gateway.fkidgateway == gateway.idgateway).order_by(Codec2Gateway.priority).all()  # noqa
         index = 0
         logger.new_loop_logger()
         for codec in codecs:
@@ -262,14 +266,51 @@ def check_3cx_data(debug):
             index += 1
     logger.del_loop_logger()
 
-    logger.new_loop_logger()
     if len(errors):
-        logger.new_iteration(prefix='We have errors')
-        host = socket.gethostname()
-        logger.warning('3CX errors for {0}'.format(host))
+        create_ticket(errors)
+
+
+def create_ticket(errors):
+    freshdesk_config = ConfigManager('freshdesk')
+    endpoint = freshdesk_config.get('default', 'endpoint')
+    freshdesk_domain = freshdesk_config.get(endpoint, 'domain')
+    freshdesk_api_key = freshdesk_config.get(endpoint, 'api_key')
+
+    freshdesk_api = FreshdeskAPI(freshdesk_domain, freshdesk_api_key, version=2)
+    del freshdesk_api_key
+
+    group_id = int(freshdesk_config.get(endpoint, 'group_id'))
+    email = freshdesk_config.get(endpoint, 'email')
+    activite = freshdesk_config.get(endpoint, 'activite')
+    logger.debug(f'activite "{activite}"')
+
+    host = socket.gethostname()
+
+    tag = f'{host}-conf'
+    subject = f'3CX configuration Error for {host}'
+
+    def get_message():
+        data = []
+        data.append('Please check configuration and fix the following errors')
+        data.append('')
+
         for error in errors:
-            logger.warning(error)
-    logger.del_loop_logger()
+            data.append(error)
+
+        return '<br/>\n'.join(data)
+    message = get_message()
+
+    freshdesk_api.tickets.create_ticket(
+        tags=[f'{tag}'],
+        source=2,
+        email=email,
+        group_id=group_id,
+        subject=subject,
+        status=2,
+        priority=1,
+        description=message,
+        custom_fields={'activit': activite},
+    )
 
 
 if __name__ == "__main__":

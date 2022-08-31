@@ -11,6 +11,8 @@ alkivi-logger = "*"
 sqlalchemy = "*"
 click = "*"
 psycopg2 = "*"
+alkivi-config-manager = "*"
+python-freshdesk = "*"
 
 [requires]
 python_version = "3"
