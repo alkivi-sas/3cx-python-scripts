@@ -285,8 +285,11 @@ def create_ticket(errors):
     logger.debug(f'activite "{activite}"')
 
     host = socket.gethostname()
+    wanted_host = host.split('.alkivi.fr')[0]
 
-    tag = f'{host}-conf'
+    tag = f'{wanted_host}-conf'
+    if len(tag) > 32:
+        tag = tag[0:32]
     subject = f'3CX configuration Error for {host}'
 
     def get_message():
