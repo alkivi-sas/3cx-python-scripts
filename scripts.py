@@ -227,6 +227,8 @@ def check_3cx_data(debug):
             wanted_codecs = ['G711a', 'G729', 'G711u']
         elif phone_type.startswith('Polycom'):
             wanted_codecs = ['PCMA', 'G729A/B', 'PCMU']
+        elif phone_type.startswith('Fanvil'):
+            wanted_codecs = ['PCMA', 'G729', 'PCMU']
         else:
             logger.warning('Unknow phone_type {0} here is current codecs {1}'.format(phone_type, test_codecs))
             continue
